@@ -4,7 +4,7 @@
 <link rel="apple-touch-icon" href="icon_catan.png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>潮風の開拓島</title>
+<title>潮風の開拓島 オンライン</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
@@ -42,11 +42,62 @@ input{font:inherit;padding:8px 10px;border-radius:9px;border:1px solid var(--lin
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;padding:0 20px 20px;max-width:1440px;margin:0 auto}
 @media(max-width:940px){.layout{grid-template-columns:1fr;padding:0 10px 16px}header{padding:10px}}
 .boardwrap{position:relative;background:radial-gradient(ellipse at 50% 45%,var(--sea) 0%,var(--sea2) 80%);border-radius:20px;overflow:hidden;align-self:start}
-#prompt{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:center;pointer-events:none}
-#prompt span{background:rgba(8,20,36,.72);color:#F3EFE4;padding:6px 14px;border-radius:999px;font-weight:500;font-size:14px;max-width:100%}
-#prompt span:empty{display:none}
+.stage{position:relative}
+.turnbar{background:rgba(6,16,30,.62);color:#F3EFE4;padding:12px 16px 10px;display:flex;flex-direction:column;gap:8px}
+.tb-head{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-width:0;height:32px}
+.tb-who{white-space:nowrap;flex:none}
+.tb-prompt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tb-who{font-family:'Kaisei Decol',serif;font-size:21px;line-height:1.2;display:flex;align-items:center;gap:6px}
+.tb-who .pdot{width:14px;height:14px}
+.tb-prompt{font-size:14px;background:rgba(255,255,255,.14);padding:3px 12px;border-radius:999px}
+.tb-cols{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px;height:210px}
+.tb-col{display:flex;flex-direction:column;min-height:0}
+.tb-col .tb-list{flex:1;min-height:0;overflow-y:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.3) transparent}
+@media(max-width:760px){.tb-cols{grid-template-columns:1fr;grid-template-rows:170px 120px;height:auto}}
+.tb-col h3{margin:0 0 5px;font-size:12.5px;font-weight:700;letter-spacing:.06em;color:#C9D3E0;flex:none}
+.tb-col.prev{opacity:.82}
+.tb-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.tb-list li{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.08);border-radius:10px;padding:6px 10px;font-size:14.5px;line-height:1.45;border-left:4px solid transparent}
+.tb-col.prev .tb-list li{font-size:13px;padding:4px 9px}
+.tb-list .ic{width:22px;flex:none;text-align:center;font-size:16px;line-height:1.35}
+.tb-list .tx small{display:block;font-size:12.5px;color:#C9D3E0;margin-top:1px}
+.tb-list li.good{background:rgba(110,190,120,.22);border-left-color:#7FD08A}
+.tb-list li.bad{background:rgba(255,120,100,.22);border-left-color:#FF8C7A}
+.tb-list li.new{box-shadow:0 0 0 2px rgba(226,172,69,.75)}
+.tb-list li.roll .num{font-family:'Kaisei Decol',serif;font-size:19px;color:#FFE3A3}
+.tb-list li.none,.tb-list li.more{background:none;color:#B8C4D4;font-size:13px;padding:2px 0}
+.tb-list .you{color:#FFE3A3}
+.tb-list .dot{color:#8C9AB0;margin:0 4px}
+.tb-events{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.tb-events li{background:rgba(255,255,255,.1);border-radius:8px;padding:2px 9px;font-size:13.5px}
+.tb-events li.new{background:rgba(226,172,69,.34)}
+.tb-events li.none{background:none;color:#B8C4D4;padding-left:0}
+.tb-prev{font-size:12.5px;color:#B8C4D4;display:flex;flex-wrap:wrap;gap:4px 10px}
+.tb-prev b{font-weight:500;color:#DDE4EE}
+.offerlay{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:min(620px,94%);z-index:2}
+.offerlay:empty{display:none}
+.tb-offer{box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#F4ECD6;color:#2A2418;border-radius:12px;padding:10px 14px;border-left:6px solid var(--accent)}
+.tb-offer .ot{font-size:15px}
+.tb-offer .ot b{font-size:19px;letter-spacing:.02em}
+.tb-offer small{display:block;color:#6A5B3E;font-size:12.5px}
+.tb-offer button{background:#fff;color:#2A2418;border-color:#CDBF9C}
+.offergrid{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;text-align:center;margin:6px 0 4px}
+.og-side{background:var(--panel2);border-radius:12px;padding:10px 6px}
+.og-side p{margin:0}
+.og-icons{font-size:30px;line-height:1.3;word-break:break-all}
+.og-arrow{font-size:26px;color:var(--muted)}
+.bigdice{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(6,16,30,.82);color:#F3EFE4;border-radius:22px;padding:18px 26px 16px;text-align:center;pointer-events:none;z-index:3;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.bigdice.hidden{display:none}
+.bd-who{font-size:15px;margin-bottom:8px}
+.bd-row{display:flex;gap:16px;justify-content:center}
+.bigdice .die{width:96px;height:96px;border-radius:18px;padding:14px;box-shadow:0 6px 0 rgba(0,0,0,.4)}
+.bigdice .die i{width:16px;height:16px}
+.bd-sum{font-family:'Kaisei Decol',serif;font-size:54px;line-height:1.1;margin-top:8px}
+.bd-sum small{display:block;font-family:inherit;font-size:17px;color:#FFB4A8;letter-spacing:.05em}
+.bigdice.seven .bd-sum{color:#FF9C8C}
+@media(max-width:600px){.bigdice .die{width:70px;height:70px;padding:10px}.bigdice .die i{width:12px;height:12px}.bd-sum{font-size:42px}}
 svg#board{width:100%;height:auto;display:block;max-height:calc(100vh - 100px);touch-action:manipulation}
-.dice{position:absolute;right:14px;bottom:14px;display:flex;gap:8px;align-items:center}
+.dice{position:absolute;right:14px;bottom:14px;display:flex;gap:8px;align-items:center;transform-origin:center}
 .dice .sum{color:#F3EFE4;font-weight:700;font-size:20px;min-width:28px;text-align:right}
 .die{width:40px;height:40px;background:#FBF7EC;border-radius:8px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:6px;box-shadow:0 3px 0 rgba(0,0,0,.35)}
 .die i{width:7px;height:7px;border-radius:50%;background:#1C1C1C;place-self:center;visibility:hidden}
@@ -157,9 +208,13 @@ aside{display:flex;flex-direction:column;gap:12px;min-width:0}
 </header>
 <main class="layout">
   <section class="boardwrap">
-    <div id="prompt"><span></span></div>
-    <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div class="dice" id="dice"></div>
+    <div class="turnbar" id="turnbar"></div>
+    <div class="stage">
+      <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="dice" id="dice"></div>
+      <div class="bigdice hidden" id="bigdice" aria-live="polite"></div>
+      <div class="offerlay" id="offerlay"></div>
+    </div>
   </section>
   <aside>
     <div class="panel"><h2>プレイヤー</h2><div id="players"></div></div>
@@ -210,6 +265,8 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let GEN=0;
 const SPEEDS={slow:{label:'ゆっくり',k:1.7},normal:{label:'ふつう',k:1},fast:{label:'はやい',k:.45}};
 let SPEED='normal';try{if(SPEEDS[localStorage.getItem('shiokaze-speed')])SPEED=localStorage.getItem('shiokaze-speed');}catch(e){}
+/* 速さ設定に関係なく待つ（サイコロの演出用） */
+function hold(ms){const g=GEN;return sleep(ms).then(()=>{if(g!==GEN)throw new Error('stale');});}
 function nap(ms){const g=GEN;return sleep(ms*SPEEDS[SPEED].k).then(()=>{if(g!==GEN)throw new Error('stale');});}
 function stale(e){if(e&&e.message!=='stale')console.error(e);}
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -278,7 +335,15 @@ function stateFor(seat){
   const o={...G,deck:null,deckN:G.deck.length,hexes:null,verts:null,edges:null,ports:null,
     bld:G.verts.map(v=>v.building),rds:G.edges.map(e=>e.road)};
   o.players=G.players.map(p=>(over||p.idx===seat)?p:{...p,res:{wood:total(p),brick:0,sheep:0,wheat:0,ore:0},dev:p.dev.map(d=>({type:'?',turn:d.turn})),masked:true});
-  o.log=G.log.slice(0,40).map(l=>({t:(l.priv&&l.priv.seats.includes(seat))?l.priv.text:l.t,sep:l.sep}));
+  const maskEv=e=>{
+    if(over)return e;
+    if(e.type==='steal'&&seat!==e.p&&seat!==e.v)return{...e,r:null};
+    if(e.type==='devBuy'&&seat!==e.p)return{...e,card:null};
+    return e;
+  };
+  o.events=G.events.map(maskEv);
+  o.prevEvents=G.prevEvents?{p:G.prevEvents.p,list:G.prevEvents.list.map(maskEv)}:null;
+  o.log=G.log.slice(0,60).map(l=>({t:(l.priv&&l.priv.seats.includes(seat))?l.priv.text:l.t,sep:l.sep,turn:l.turn,n:l.n}));
   return o;
 }
 
@@ -424,14 +489,14 @@ function buildBoard(){
 
 /* spec: [{name, human}] ×4 */
 function newGame(spec){
-  GEN++;H={pick:null,discard:null,victim:null,driving:false};L.mode=null;
+  GEN++;if(H.offerTimer)clearTimeout(H.offerTimer);H={pick:null,discard:null,victim:null,driving:false,offerWait:null,offerTimer:null};L.mode=null;
   closeModal();
   const b=buildBoard();
   const deck=shuffle([...Array(14).fill('knight'),...Array(5).fill('vp'),'road','road','yop','yop','mono','mono']);
   G={...b,robber:b.hexes.find(h=>h.type==='desert').id,
     players:spec.map((s,i)=>({name:s.name,color:COLORS[i],human:s.human,online:s.human,ai:!s.human,idx:i,res:zero(),dev:[],knights:0,roads:15,settlements:5,cities:4})),
     deck,cur:0,phase:'setup',mode:null,waitSeat:null,rolled:false,devPlayed:false,busy:false,turnNo:0,longest:null,army:null,
-    log:[],dice:[0,0],rollId:0,lastV:null,pendingDiscard:null,pendingVictim:null,offer:null,
+    log:[],events:[],prevEvents:null,evN:0,dice:[0,0],rollId:0,lastV:null,pendingDiscard:null,pendingVictim:null,offer:null,
     boardId:Date.now().toString(36)+Math.random().toString(36).slice(2,6),last:null};
   log('島に到着しました。開拓地と街道を2組ずつ配置します。');
   render();
@@ -448,7 +513,9 @@ const afford=(p,c)=>Object.entries(c).every(([r,n])=>p.res[r]>=n);
 const pay=(p,c)=>{for(const[r,n]of Object.entries(c))p.res[r]-=n;};
 const costIcons=c=>Object.entries(c).map(([r,n])=>RI[r].repeat(n)).join('');
 const deckLeft=()=>G.deck?G.deck.length:G.deckN;
-function log(t,o={}){G.log.unshift({t,sep:!!o.sep,priv:o.priv||null});if(G.log.length>150)G.log.pop();}
+/* ev: 上の「ターンの出来事」用の構造化データ（見る人ごとに「あなた」表記に変えて表示する） */
+function ev(type,d={}){G.evN=(G.evN||0)+1;const e={type,...d,seq:G.evN};G.events.push(e);return e;}
+function log(t,o={}){G.logN=(G.logN||0)+1;G.log.unshift({t,sep:!!o.sep,priv:o.priv||null,turn:G.turnNo,n:G.logN});if(G.log.length>150)G.log.pop();}
 function vp(p,hidden){let v=0;G.verts.forEach(x=>{if(x.building&&x.building.owner===p.idx)v+=x.building.type==='c'?2:1;});if(G.longest===p.idx)v+=2;if(G.army===p.idx)v+=2;if(hidden)v+=p.dev.filter(d=>d.type==='vp').length;return v;}
 
 function freeSpot(v){const V=G.verts[v];return !V.building&&V.adj.every(a=>!G.verts[a].building);}
@@ -465,14 +532,14 @@ function rate(pi,r){let b=4;G.verts.forEach(v=>{if(v.building&&v.building.owner=
 
 function placeSettlement(pi,v,second){
   const p=G.players[pi];G.verts[v].building={owner:pi,type:'s'};p.settlements--;
-  log(`${nm(pi)}が開拓地を建設`);
-  if(second){const got=[];G.verts[v].hexes.forEach(h=>{const t=G.hexes[h].type;if(t!=='desert'){p.res[t]++;got.push(RI[t]);}});if(got.length)log(`${nm(pi)}は初期資源 ${got.join('')} を受け取った`);}
+  log(`${nm(pi)}が開拓地を建設`);ev('build',{p:pi,what:'settlement'});
+  if(second){const got=[],bag=zero();G.verts[v].hexes.forEach(h=>{const t=G.hexes[h].type;if(t!=='desert'){p.res[t]++;bag[t]++;got.push(RI[t]);}});if(got.length){log(`${nm(pi)}は初期資源 ${got.join('')} を受け取った`);ev('initial',{p:pi,bag});}}
   updateLongest();
 }
 /* 直前に置かれた場所を盤面で光らせる（CPUの動きを追いやすくする） */
 function mark(kind,id){G.last={kind,id,at:Date.now()};}
-function placeRoad(pi,e){G.edges[e].road=pi;G.players[pi].roads--;updateLongest();}
-function placeCity(pi,v){G.verts[v].building.type='c';const p=G.players[pi];p.cities--;p.settlements++;log(`${nm(pi)}が都市へ発展`);}
+function placeRoad(pi,e){G.edges[e].road=pi;ev('build',{p:pi,what:'road'});G.players[pi].roads--;updateLongest();}
+function placeCity(pi,v){G.verts[v].building.type='c';const p=G.players[pi];p.cities--;p.settlements++;log(`${nm(pi)}が都市へ発展`);ev('build',{p:pi,what:'city'});}
 
 function longestFor(pi){
   let best=0;
@@ -489,13 +556,13 @@ function updateLongest(){
   if(cur!==null&&Ls[cur]>=5&&Ls[cur]===max)return;
   const top=Ls.map((l,i)=>i).filter(i=>Ls[i]===max);
   const nw=(max>=5&&top.length===1)?top[0]:null;
-  if(nw!==cur){G.longest=nw;if(nw!==null)log(`${nm(nw)}が最長交易路を獲得（${max}本）`);else log('最長交易路の保持者がいなくなった');}
+  if(nw!==cur){G.longest=nw;if(nw!==null){log(`${nm(nw)}が最長交易路を獲得（${max}本）`);ev('award',{p:nw,kind:'longest',from:cur});}else{log('最長交易路の保持者がいなくなった');ev('awardLost',{p:cur,kind:'longest'});}}
 }
-function updateArmy(){G.players.forEach(p=>{if(p.knights>=3&&(G.army===null||p.knights>G.players[G.army].knights)&&G.army!==p.idx){G.army=p.idx;log(`${nm(p.idx)}が最大騎士力を獲得`);}});}
+function updateArmy(){G.players.forEach(p=>{if(p.knights>=3&&(G.army===null||p.knights>G.players[G.army].knights)&&G.army!==p.idx){ev('award',{p:p.idx,kind:'army',from:G.army});G.army=p.idx;log(`${nm(p.idx)}が最大騎士力を獲得`);}});}
 function checkWin(){
   if(G.phase!=='main')return G.phase==='over';
   const p=G.players[G.cur];
-  if(vp(p,true)>=10){G.phase='over';G.mode=null;G.offer=null;log(`${nm(p.idx)}が10点に到達し勝利！`);render();return true;}
+  if(vp(p,true)>=10){G.phase='over';G.mode=null;finishOffer(false);log(`${nm(p.idx)}が10点に到達し勝利！`);render();return true;}
   return false;
 }
 
@@ -522,12 +589,13 @@ async function runSetup(){
   startTurn();
 }
 function startTurn(){
-  G.turnNo++;G.rolled=false;G.devPlayed=false;G.offer=null;
+  G.prevEvents={p:G.phase==='main'&&G.turnNo>0?(G.cur+3)%4:null,list:G.events};G.events=[];
+  G.turnNo++;G.rolled=false;G.devPlayed=false;G.aiOffered=false;finishOffer(false);
   log(`${nm(G.cur)}のターン`,{sep:true});
   if(checkWin())return;
   render();ensureDriver();
 }
-function endTurn(){if(G.phase!=='main')return;G.offer=null;G.cur=(G.cur+1)%4;startTurn();}
+function endTurn(){if(G.phase!=='main')return;finishOffer(false);G.cur=(G.cur+1)%4;startTurn();}
 
 /* 現在の手番がCPUなら、CPUに操作させる（切断した人間の代打ちも含む） */
 function ensureDriver(){
@@ -551,7 +619,7 @@ function takeover(seat){
   }
   if(H.discard&&G.pendingDiscard&&G.pendingDiscard.seat===seat){const t={...p.res},sel=zero();for(let k=0;k<G.pendingDiscard.n;k++){let r=RES[0];RES.forEach(x=>{if(t[x]>t[r])r=x;});t[r]--;sel[r]++;}resolveDiscard(sel);}
   if(H.victim&&G.pendingVictim&&G.pendingVictim.seat===seat)resolveVictim(G.pendingVictim.vic[0]);
-  if(G.offer){if(G.offer.from===seat)G.offer=null;else offerReply(seat,false);}
+  if(G.offer){if(G.offer.from===seat)finishOffer(false);else offerReply(seat,false);}
   ensureDriver();
 }
 
@@ -560,8 +628,9 @@ async function doRoll(){
   const a=1+Math.floor(Math.random()*6),b=1+Math.floor(Math.random()*6);
   G.dice=[a,b];G.rollId++;const s=a+b;
   log(`${nm(G.cur)}のサイコロ: <b>${s}</b>`);
-  if(s===7){render();await sevenFlow(G.cur);}
-  else{produce(s);render();}
+  const e=ev('roll',{p:G.cur,sum:s,gains:[]});
+  if(s===7){render();await hold(1900);await sevenFlow(G.cur);}
+  else{e.gains=produce(s);render();}
 }
 function produce(s){
   const gains=G.players.map(()=>({}));
@@ -569,6 +638,7 @@ function produce(s){
   let any=false;
   gains.forEach((g,i)=>{const t=Object.entries(g).map(([r,n])=>RI[r]+'×'+n).join(' ');if(t){any=true;log(`${nm(i)} ${t}`);}});
   if(!any)log('誰も資源を得られなかった');
+  return gains.map((g,i)=>({p:i,g})).filter(x=>Object.keys(x.g).length);
 }
 async function sevenFlow(pi){
   const wasBusy=G.busy;G.busy=true;
@@ -578,7 +648,7 @@ async function sevenFlow(pi){
       const n=Math.floor(t/2);
       if(p.ai)aiDiscard(p,n);
       else await new Promise(res=>{H.discard=res;G.pendingDiscard={seat:p.idx,n};render();});
-      log(`${nm(p.idx)}は手札を${n}枚捨てた`);
+      log(`${nm(p.idx)}は手札を${n}枚捨てた`);ev('discard',{p:p.idx,n});
     }
   }
   await robberFlow(pi);
@@ -592,6 +662,7 @@ async function robberFlow(pi){
   else h=await waitPick('robber',pi);
   G.robber=h;const Hx=G.hexes[h];
   log(`${nm(pi)}が盗賊を${TER[Hx.type].n}${Hx.num?'（'+Hx.num+'）':''}へ移動`);
+  ev('robber',{p:pi,hex:h,owners:[...new Set(Hx.verts.map(v=>G.verts[v].building).filter(Boolean).map(b=>b.owner))]});
   const vic=[...new Set(Hx.verts.map(v=>G.verts[v].building).filter(b=>b&&b.owner!==pi).map(b=>b.owner))].filter(i=>total(G.players[i])>0);
   if(vic.length){
     let v;
@@ -605,17 +676,18 @@ async function robberFlow(pi){
 function steal(t,v){
   const V=G.players[v],pool=RES.flatMap(r=>Array(V.res[r]).fill(r)),r=pool[Math.floor(Math.random()*pool.length)];
   V.res[r]--;G.players[t].res[r]++;
+  ev('steal',{p:t,v,r});
   log(`${nm(t)}が${nm(v)}から資源を1枚奪った`,{priv:{seats:[t,v],text:`${nm(t)}が${nm(v)}から${RI[r]}${RJ[r]}を奪った`}});
 }
 
 function buyDev(pi){
   const p=G.players[pi];if(!G.deck.length||!afford(p,COST.dev))return false;
-  pay(p,COST.dev);const t=G.deck.pop();p.dev.push({type:t,turn:G.turnNo});
+  pay(p,COST.dev);const t=G.deck.pop();p.dev.push({type:t,turn:G.turnNo});ev('devBuy',{p:pi,card:t});
   log(`${nm(pi)}が発展カードを購入`,{priv:{seats:[pi],text:`${nm(pi)}が発展カードを購入（${DEVJ[t]}）`}});
   checkWin();return true;
 }
 const canPlay=(p,t)=>!G.devPlayed&&p.dev.some(d=>d.type===t&&d.turn<G.turnNo);
-function takeDev(p,t){const i=p.dev.findIndex(d=>d.type===t&&d.turn<G.turnNo);p.dev.splice(i,1);G.devPlayed=true;log(`${nm(p.idx)}が「${DEVJ[t]}」を使用`);}
+function takeDev(p,t){const i=p.dev.findIndex(d=>d.type===t&&d.turn<G.turnNo);p.dev.splice(i,1);G.devPlayed=true;log(`${nm(p.idx)}が「${DEVJ[t]}」を使用`);if(t!=='yop'&&t!=='mono')ev('devPlay',{p:p.idx,card:t});}
 async function playKnight(pi){const p=G.players[pi];takeDev(p,'knight');p.knights++;updateArmy();await robberFlow(pi);checkWin();}
 async function playRoadBuilding(pi){
   const p=G.players[pi];takeDev(p,'road');
@@ -628,37 +700,57 @@ async function playRoadBuilding(pi){
   }
   checkWin();
 }
-function playYop(pi,a,b){const p=G.players[pi];takeDev(p,'yop');p.res[a]++;p.res[b]++;log(`${nm(pi)}は${RI[a]}${RI[b]}を得た`);}
-function playMono(pi,r){const p=G.players[pi];takeDev(p,'mono');let n=0;G.players.forEach(o=>{if(o.idx!==pi){n+=o.res[r];o.res[r]=0;}});p.res[r]+=n;log(`${nm(pi)}は${RI[r]}${RJ[r]}を${n}枚独占した`);}
+function playYop(pi,a,b){const p=G.players[pi];takeDev(p,'yop');p.res[a]++;p.res[b]++;log(`${nm(pi)}は${RI[a]}${RI[b]}を得た`);const bag=zero();bag[a]++;bag[b]++;ev('yop',{p:pi,bag});}
+function playMono(pi,r){const p=G.players[pi];takeDev(p,'mono');let n=0;const taken={};G.players.forEach(o=>{if(o.idx!==pi){taken[o.idx]=o.res[r];n+=o.res[r];o.res[r]=0;}});p.res[r]+=n;log(`${nm(pi)}は${RI[r]}${RJ[r]}を${n}枚独占した`);ev('mono',{p:pi,r,n,taken});}
 
 /* ---------- 交易 ---------- */
 const cleanRes=o=>{const r=zero();RES.forEach(k=>{const n=Math.floor(Number(o&&o[k]));r[k]=n>0&&n<20?n:0;});return r;};
 function bank(seat,give,get){
   const p=G.players[seat];if(!RES.includes(give)||!RES.includes(get)||give===get)return;
   const rt=rate(seat,give);if(p.res[give]<rt)return;
-  p.res[give]-=rt;p.res[get]++;log(`${nm(seat)}が${RI[give]}×${rt}を${RI[get]}×1と交換`);render();
+  p.res[give]-=rt;p.res[get]++;log(`${nm(seat)}が${RI[give]}×${rt}を${RI[get]}×1と交換`);ev('bank',{p:seat,give,n:rt,get});render();
 }
-function execTrade(a,b,pg,pw){const A=G.players[a],B=G.players[b];RES.forEach(r=>{A.res[r]-=pg[r];B.res[r]+=pg[r];B.res[r]-=pw[r];A.res[r]+=pw[r];});log(`${nm(a)}と${nm(b)}が交換：${costIcons(pg)} ⇄ ${costIcons(pw)}`);}
+function execTrade(a,b,pg,pw){const A=G.players[a],B=G.players[b];RES.forEach(r=>{A.res[r]-=pg[r];B.res[r]+=pg[r];B.res[r]-=pw[r];A.res[r]+=pw[r];});log(`${nm(a)}と${nm(b)}が交換：${costIcons(pg)} ⇄ ${costIcons(pw)}`);ev('trade',{p:a,q:b,pg,pw});}
+const OFFER_TIMEOUT=30000;
+/* 提案の終了（成立・不成立・取り下げ）はすべてここを通る。CPUが提案した場合は結果を待っている */
+function finishOffer(ok){
+  if(G.offer){clearTimeout(H.offerTimer);H.offerTimer=null;}
+  G.offer=null;const r=H.offerWait;H.offerWait=null;if(r)r(ok);
+}
 function makeOffer(seat,pg,pw){
   pg=cleanRes(pg);pw=cleanRes(pw);const p=G.players[seat];
-  if(sum(pg)<1||sum(pw)<1||RES.some(r=>pg[r]&&pw[r])||RES.some(r=>p.res[r]<pg[r]))return;
-  for(const s of shuffle(G.players.filter(x=>x.ai&&x.idx!==seat).map(x=>x.idx))){
-    if(aiAccepts(s,seat,pg,pw)){execTrade(seat,s,pg,pw);notify(seat,`${G.players[s].name}が承諾しました`);render();return;}
-  }
+  if(G.offer||sum(pg)<1||sum(pw)<1||RES.some(r=>pg[r]&&pw[r])||RES.some(r=>p.res[r]<pg[r]))return false;
   const humans=G.players.filter(x=>!x.ai&&x.idx!==seat).map(x=>x.idx);
-  if(!humans.length){notify(seat,'誰も応じませんでした。条件を変えてみましょう');return;}
-  G.offer={from:seat,pg,pw,waiting:humans};
-  log(`${nm(seat)}が交換を提案：${costIcons(pg)} を出して ${costIcons(pw)} がほしい`);render();
+  G.offerSeq=(G.offerSeq||0)+1;
+  const id=G.offerSeq,cpuFrom=p.ai;
+  G.offer={id,from:seat,pg,pw,waiting:humans,declined:[],cpuFrom,timeout:cpuFrom?OFFER_TIMEOUT/1000:0};
+  log(`${nm(seat)}が交換を提案：${costIcons(pg)} を出して ${costIcons(pw)} がほしい`);
+  if(!humans.length){offerToCpus();return true;}
+  if(cpuFrom){const gen=GEN;H.offerTimer=setTimeout(()=>{
+    if(gen!==GEN||!G.offer||G.offer.id!==id)return;
+    const o=G.offer;o.declined.push(...o.waiting);o.waiting=[];log('返事がなかったため、提案は断られた扱いになった');offerToCpus();
+  },OFFER_TIMEOUT);}
+  render();return true;
+}
+/* 人間が全員断ったあと（または人間がいないとき）に、CPUが判断する */
+function offerToCpus(){
+  const o=G.offer;if(!o)return;
+  const P=G.players[o.from];
+  if(RES.some(r=>P.res[r]<o.pg[r])){finishOffer(false);log('交換は取り消された（資源不足）');notify(o.from,'資源が足りなくなったため取り消されました');render();return;}
+  for(const s of shuffle(G.players.filter(x=>x.ai&&x.idx!==o.from).map(x=>x.idx))){
+    if(aiAccepts(s,o.from,o.pg,o.pw)){finishOffer(true);execTrade(o.from,s,o.pg,o.pw);notify(o.from,`${G.players[s].name}（CPU）が承諾しました`);render();return;}
+  }
+  finishOffer(false);log('誰も交換に応じなかった');ev('noDeal',{p:o.from,pg:o.pg,pw:o.pw});notify(o.from,'誰も応じませんでした。条件を変えてみましょう');render();
 }
 function offerReply(seat,accept){
   const o=G.offer;if(!o||!o.waiting.includes(seat))return;
   if(accept){
     const A=G.players[seat],P=G.players[o.from];
-    if(RES.every(r=>A.res[r]>=o.pw[r])&&RES.every(r=>P.res[r]>=o.pg[r])){G.offer=null;execTrade(o.from,seat,o.pg,o.pw);notify(o.from,`${A.name}が承諾しました`);render();return;}
+    if(RES.every(r=>A.res[r]>=o.pw[r])&&RES.every(r=>P.res[r]>=o.pg[r])){finishOffer(true);execTrade(o.from,seat,o.pg,o.pw);notify(o.from,`${A.name}が承諾しました`);render();return;}
     notify(seat,'資源が足りないため成立しませんでした');
   }
-  o.waiting=o.waiting.filter(s=>s!==seat);
-  if(!o.waiting.length){G.offer=null;notify(o.from,'誰も応じませんでした');}
+  o.waiting=o.waiting.filter(s=>s!==seat);o.declined.push(seat);
+  if(!o.waiting.length){o.stage='cpus';offerToCpus();return;}
   render();
 }
 
@@ -705,7 +797,7 @@ async function handle(seat,m){
         render();ensureDriver();break;}
       case 'bank':if(G.rolled)bank(seat,m.give,m.get);break;
       case 'offer':if(G.rolled)makeOffer(seat,m.pg,m.pw);break;
-      case 'cancelOffer':if(G.offer&&G.offer.from===seat){G.offer=null;render();}break;
+      case 'cancelOffer':if(G.offer&&G.offer.from===seat){finishOffer(false);log('交換の提案は取り下げられた');render();}break;
       case 'end':if(G.rolled)endTurn();break;
     }
   }catch(e){stale(e);}
@@ -747,7 +839,7 @@ function aiTarget(pi){
 function aiBankTrade(pi){
   const p=G.players[pi],t=aiTarget(pi);if(!t)return false;
   const need=RES.filter(r=>(t[r]||0)>p.res[r]);if(!need.length)return false;
-  for(const r of RES){const keep=t[r]||0,rt=rate(pi,r);if(p.res[r]-keep>=rt){p.res[r]-=rt;const g=need[0];p.res[g]++;log(`${nm(pi)}が${RI[r]}×${rt}を${RI[g]}×1と交換`);return true;}}
+  for(const r of RES){const keep=t[r]||0,rt=rate(pi,r);if(p.res[r]-keep>=rt){p.res[r]-=rt;const g=need[0];p.res[g]++;log(`${nm(pi)}が${RI[r]}×${rt}を${RI[g]}×1と交換`);ev('bank',{p:pi,give:r,n:rt,get:g});return true;}}
   return false;
 }
 const robberOnMine=pi=>G.hexes[G.robber].verts.some(v=>G.verts[v].building&&G.verts[v].building.owner===pi);
@@ -762,7 +854,7 @@ async function aiTurn(pi){
   const p=G.players[pi];render();await nap(1100);
   if(!G.rolled){
     if(canPlay(p,'knight')&&robberOnMine(pi)){await playKnight(pi);if(G.phase==='over')return;await nap(900);}
-    await doRoll();await nap(1500);
+    await doRoll();await hold(1500);await nap(900);
   }
   await aiDevs(pi);if(checkWin())return;render();
   for(let it=0;it<15;it++){
@@ -771,11 +863,29 @@ async function aiTurn(pi){
     if(!acted&&p.cities>0&&afford(p,COST.city)){let best=null,bs=-1;G.verts.forEach(v=>{if(legalCity(pi,v.id)){const s=vScore(v.id);if(s>bs){bs=s;best=v.id;}}});if(best!=null){pay(p,COST.city);placeCity(pi,best);mark('v',best);acted=true;}}
     if(!acted&&p.roads>0&&afford(p,COST.road)&&(settleSpots(pi).length===0||(total(p)>=7&&Math.random()<.5))){const e=aiBestRoad(pi);if(e!=null){pay(p,COST.road);placeRoad(pi,e);mark('e',e);log(`${nm(pi)}が街道を建設`);acted=true;}}
     if(!acted&&afford(p,COST.dev)&&G.deck.length){const t=aiTarget(pi);if(t===COST.dev||total(p)>=8||Math.random()<.25){buyDev(pi);acted=true;}}
+    if(!acted&&!G.aiOffered){const pl=aiPlanOffer(pi);if(pl){G.aiOffered=true;acted=await aiOffer(pi,pl);if(G.phase!=='main')return;render();await nap(900);}}
     if(!acted)acted=aiBankTrade(pi);
     if(checkWin())return;
     if(!acted)break;
     render();await nap(1100);
   }
+}
+/* CPUの交換提案：あと1〜2枚で建てられるときに、余っている資源1枚と足りない資源1枚の交換を持ちかける */
+function aiPlanOffer(pi){
+  const p=G.players[pi],t=aiTarget(pi);if(!t||Math.random()<.3)return null;
+  const need=RES.filter(r=>(t[r]||0)>p.res[r]);if(!need.length)return null;
+  const missing=need.reduce((s,r)=>s+(t[r]-p.res[r]),0);if(missing>2)return null;
+  let give=null,extra=0;RES.forEach(r=>{if(need.includes(r))return;const e=p.res[r]-(t[r]||0);if(e>extra){extra=e;give=r;}});
+  if(!give)return null;
+  if(rate(pi,give)<=2&&extra>=rate(pi,give))return null;
+  const pg=zero(),pw=zero();pg[give]=1;pw[need[Math.floor(Math.random()*need.length)]]=1;
+  return{pg,pw};
+}
+function aiOffer(pi,pl){
+  return new Promise(res=>{
+    H.offerWait=res;
+    if(!makeOffer(pi,pl.pg,pl.pw)&&H.offerWait===res){H.offerWait=null;res(false);}
+  });
 }
 function aiAccepts(pi,from,recv,give){
   const p=G.players[pi];if(RES.some(r=>p.res[r]<(give[r]||0)))return false;
@@ -843,9 +953,24 @@ function syncModals(){
   const s=NET.mySeat,pd=G.pendingDiscard,pv=G.pendingVictim;
   if(pd&&pd.seat===s){if(L.modal!=='discard')openDiscard(pd.n);}
   else if(pv&&pv.seat===s){if(L.modal!=='victim')openVictim(pv.vic);}
-  else if(L.modal==='discard'||L.modal==='victim')closeModal();
+  else if(G.offer&&G.offer.waiting.includes(s)){if(L.modal!=='offer:'+G.offer.id)openOffer(G.offer);}
+  else if(L.modal==='discard'||L.modal==='victim'||(L.modal&&String(L.modal).startsWith('offer:')))closeModal();
   if(G.phase==='over'&&L.modal!=='over')showWin();
   if(G.phase!=='over'&&L.modal==='over')closeModal();
+}
+const resText=o=>RES.filter(r=>o[r]).map(r=>`${RJ[r]}×${o[r]}`).join('、');
+function openOffer(o){
+  const p=me(),can=RES.every(k=>p.res[k]>=o.pw[k]);
+  modal(`<h3>${nm(o.from)}から交換の提案</h3>
+  <div class="offergrid">
+    <div class="og-side"><p class="muted">あなたがもらう</p><div class="og-icons">${costIcons(o.pg)}</div><small>${resText(o.pg)}</small></div>
+    <div class="og-arrow" aria-hidden="true">⇄</div>
+    <div class="og-side"><p class="muted">あなたが渡す</p><div class="og-icons">${costIcons(o.pw)}</div><small>${resText(o.pw)}</small></div>
+  </div>
+  ${can?'':'<p class="err">渡す資源が足りないため、承諾できません。</p>'}
+  ${o.timeout?`<p class="muted">${o.timeout}秒以内に返事がないと、断ったことになります。</p>`:''}
+  <div class="mfoot"><button data-act="no">断る</button><button class="primary" data-act="yes" ${can?'':'disabled'}>承諾する</button></div>`,
+  {yes:()=>{hideModal();send({t:'offerReply',accept:true});},no:()=>{hideModal();send({t:'offerReply',accept:false});}},'offer:'+o.id);
 }
 function openDiscard(n){
   const sel=zero(),p=me();
@@ -882,7 +1007,7 @@ function openTrade(){
     RES.forEach(r=>{h+=`<button class="chip ${st.get===r?'sel':''}" data-act="get:${r}" ${r===st.give?'disabled':''}>${RI[r]}<small>${RJ[r]}</small></button>`;});
     const okBank=st.give&&st.get&&st.give!==st.get&&p.res[st.give]>=rate(s,st.give);
     h+=`</div><button class="primary" data-act="bank" ${okBank?'':'disabled'}>交換する</button>`;
-    h+=`<div class="tsec"><h4>ほかのプレイヤーに提案</h4><p class="muted" style="margin:0 0 6px">CPUはその場で判断し、人間のプレイヤーには承諾・拒否のボタンが表示されます。</p><div class="tgrid"><span></span><span class="h">出す</span><span class="h">ほしい</span>`;
+    h+=`<div class="tsec"><h4>ほかのプレイヤーに提案</h4><p class="muted" style="margin:0 0 6px">まず人間のプレイヤーに届き、全員が断った場合にCPUが判断します。</p><div class="tgrid"><span></span><span class="h">出す</span><span class="h">ほしい</span>`;
     RES.forEach(r=>{h+=`<span>${RI[r]} ${RJ[r]}</span>${stepper('pg',r,st.pg[r],p.res[r])}${stepper('pw',r,st.pw[r],9)}`;});
     const okOffer=sum(st.pg)>0&&sum(st.pw)>0&&!RES.some(r=>st.pg[r]&&st.pw[r])&&!G.offer;
     h+=`</div><button data-act="offer" ${okOffer?'':'disabled'}>提案する</button></div><div class="mfoot"><button data-act="close">閉じる</button></div>`;
@@ -926,7 +1051,7 @@ $('#speedSel').onchange=e=>{SPEED=e.target.value;try{localStorage.setItem('shiok
 $('#newBtn').onclick=()=>{if(!G||NET.role==='guest')return;if(G.phase==='over'||confirm('今のゲームを終えて、新しい島で始めますか？'))restart();};
 
 /* ---------- 描画 ---------- */
-let lastRollId=0;
+let lastRollId=-1;
 function render(){if(!G)return;sync();renderBoard();renderSide();syncModals();}
 function promptText(){
   const s=NET.mySeat,cur=G.players[G.cur];
@@ -1000,11 +1125,138 @@ function renderBoard(){
   const rh=G.hexes[G.robber];
   s+=`<g transform="translate(${rh.x+25},${rh.y+2})" pointer-events="none"><ellipse cy="13" rx="10" ry="3.5" fill="rgba(0,0,0,.35)"/><path d="M-7,12 C-7,2 -4,0 -4,-3 A5.5,5.5 0 1 1 4,-3 C4,0 7,2 7,12 Z" fill="#23262B" stroke="#F4ECD6" stroke-width="1.2"/></g>`;
   svg.innerHTML=s;
-  $('#prompt span').textContent=promptText()||'';
-  const face={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
-  const anim=G.rollId!==lastRollId;lastRollId=G.rollId;
-  $('#dice').innerHTML=G.dice[0]?`<span class="sum">${G.dice[0]+G.dice[1]}</span>`+G.dice.map(d=>`<div class="die ${anim?'roll':''}">${[...Array(9)].map((_,i)=>`<i class="${face[d].includes(i)?'on':''}"></i>`).join('')}</div>`).join(''):'';
+  renderTurnbar();
+  const anim=G.rollId!==lastRollId&&lastRollId!==-1&&G.dice[0]>0;lastRollId=G.rollId;
+  $('#dice').innerHTML=G.dice[0]?`<span class="sum">${G.dice[0]+G.dice[1]}</span>`+G.dice.map(d=>dieHTML(d)).join(''):'';
+  if(anim)playDice();
 }
+const FACE={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+const dieHTML=(d,cls='')=>`<div class="die ${cls}">${[...Array(9)].map((_,i)=>`<i class="${FACE[d].includes(i)?'on':''}"></i>`).join('')}</div>`;
+let diceAnim=null,diceTimer=null;
+/* 盤面の真ん中に大きく出して、少し見せてから右下の定位置へ縮みながら移動する */
+function playDice(){
+  const big=$('#bigdice'),small=$('#dice'),[a,b]=G.dice,s=a+b;
+  const reduced=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(diceAnim)diceAnim.cancel();clearTimeout(diceTimer);
+  big.className='bigdice'+(s===7?' seven':'');
+  big.innerHTML=`<div class="bd-who">${nm(G.cur)} のサイコロ</div><div class="bd-row">${dieHTML(a,'roll')}${dieHTML(b,'roll')}</div><div class="bd-sum">${s}${s===7?'<small>盗賊が動きます</small>':''}</div>`;
+  small.style.opacity='0';
+  const done=()=>{
+    big.classList.add('hidden');small.style.opacity='';diceAnim=null;
+    if(small.animate&&!reduced)small.animate([{transform:'scale(.7)',opacity:.4},{transform:'scale(1.06)',opacity:1,offset:.7},{transform:'scale(1)',opacity:1}],{duration:260,easing:'ease-out'});
+  };
+  if(reduced||!big.animate){diceTimer=setTimeout(done,1600);return;}
+  const br=big.getBoundingClientRect(),sr=small.getBoundingClientRect();
+  const dx=(sr.left+sr.width/2)-(br.left+br.width/2),dy=(sr.top+sr.height/2)-(br.top+br.height/2);
+  const c='translate(-50%,-50%)';
+  diceAnim=big.animate([
+    {transform:`${c} scale(.35)`,opacity:0},
+    {transform:`${c} scale(1.08)`,opacity:1,offset:.14},
+    {transform:`${c} scale(1)`,opacity:1,offset:.22},
+    {transform:`${c} scale(1)`,opacity:1,offset:.72},
+    {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.3)`,opacity:.55}
+  ],{duration:2000,easing:'ease-in-out'});
+  diceAnim.onfinish=done;
+}
+/* 手番表示：誰の番か・今やること・このターンの出来事・前のターンの出来事 */
+let seenEv=0,lastPrevKey='';
+const bagText=o=>RES.filter(r=>o[r]).map(r=>`${RI[r]}${RJ[r]}×${o[r]}`).join('、');
+const hexName=h=>{const x=G.hexes[h];return `${TER[x.type].i}${TER[x.type].n}${x.num?'（'+x.num+'）':''}`;};
+/* 1つの出来事を、見ている人の視点の文章にする。cls: good=自分に得 / bad=自分に損 */
+function evView(e,s0){
+  const W=i=>i===s0?'<b class="you">あなた</b>':nm(i);
+  const WO=i=>i===s0?'<b class="you">あなた</b>':nm(i);
+  const R1=r=>`${RI[r]}${RJ[r]}`;
+  switch(e.type){
+    case 'roll':{
+      if(e.sum===7)return{ic:'🎲',h:`${W(e.p)}のサイコロは <b class="num">7</b>。資源は出ず、盗賊が動きます`,cls:'roll'};
+      const mine=e.gains.find(g=>g.p===s0);
+      let sub=e.gains.length?e.gains.map(g=>`${WO(g.p)} ${Object.entries(g.g).map(([r,n])=>`${RI[r]}×${n}`).join(' ')}`).join('<span class="dot">／</span>'):'誰も資源をもらえませんでした';
+      return{ic:'🎲',h:`${W(e.p)}のサイコロは <b class="num">${e.sum}</b>`,sub,cls:mine?'roll good':'roll'};
+    }
+    case 'build':{
+      const w={road:['🛤️','街道を引いた'],settlement:['🏠','開拓地を建てた'],city:['🏙️','都市に発展させた']}[e.what];
+      return{ic:w[0],h:`${W(e.p)}が${w[1]}`};
+    }
+    case 'initial':return{ic:'🎁',h:`${W(e.p)}が初期資源を受け取った`,sub:bagText(e.bag),cls:e.p===s0?'good':''};
+    case 'discard':return{ic:'🗑️',h:`${W(e.p)}が手札を${e.n}枚捨てた`,cls:e.p===s0?'bad':''};
+    case 'robber':{
+      const hit=e.owners.includes(s0)&&e.p!==s0;
+      return{ic:'🥷',h:`${W(e.p)}が盗賊を ${hexName(e.hex)} に置いた`,sub:hit?'あなたの土地です。盗賊がいる間、このタイルから資源が出ません':'',cls:hit?'bad':''};
+    }
+    case 'steal':
+      if(e.p!==s0&&e.v!==s0&&G.phase!=='over')e={...e,r:null};
+      if(e.v===s0)return{ic:'🥷',h:`${nm(e.p)}に <b>${e.r?R1(e.r):'資源'}</b> を1枚奪われた`,cls:'bad'};
+      if(e.p===s0)return{ic:'🥷',h:`${nm(e.v)}から <b>${e.r?R1(e.r):'資源'}</b> を1枚奪った`,cls:'good'};
+      return{ic:'🥷',h:`${nm(e.p)}が${nm(e.v)}から資源を1枚奪った`};
+    case 'devBuy':{const show=e.card&&(e.p===s0||G.phase==='over');return{ic:'🃏',h:`${W(e.p)}が発展カードを買った${show?`（${DEVJ[e.card]}）`:''}`,sub:e.p===s0?'':'中身は使われるまでわかりません'};}
+    case 'devPlay':return{ic:e.card==='knight'?'⚔️':'🃏',h:`${W(e.p)}が「${DEVJ[e.card]}」を使った`};
+    case 'yop':return{ic:'🌾',h:`${W(e.p)}が「豊作」で資源を得た`,sub:bagText(e.bag),cls:e.p===s0?'good':''};
+    case 'mono':{
+      const lost=e.taken[s0];
+      return{ic:'💰',h:`${W(e.p)}が「独占」で ${R1(e.r)} を${e.n}枚集めた`,sub:e.p!==s0&&lost?`あなたは ${R1(e.r)} を${lost}枚取られました`:'',cls:e.p===s0?'good':lost?'bad':''};
+    }
+    case 'bank':return{ic:'⚓',h:`${W(e.p)}が港・銀行で交換した`,sub:`${RI[e.give]}${RJ[e.give]}×${e.n} → ${RI[e.get]}${RJ[e.get]}×1`};
+    case 'trade':{
+      if(e.p===s0||e.q===s0){
+        const other=e.p===s0?e.q:e.p,got=e.p===s0?e.pw:e.pg,gave=e.p===s0?e.pg:e.pw;
+        return{ic:'🤝',h:`${nm(other)}と交換が成立した`,sub:`あなたが渡した：${bagText(gave)}　／　もらった：${bagText(got)}`,cls:'good'};
+      }
+      return{ic:'🤝',h:`${nm(e.p)}と${nm(e.q)}が交換した`,sub:`${nm(e.p)}が ${bagText(e.pg)} を渡し、${bagText(e.pw)} を受け取った`};
+    }
+    case 'noDeal':return{ic:'🤝',h:`${W(e.p)}の交換提案は成立しなかった`,sub:`${bagText(e.pg)} ⇄ ${bagText(e.pw)}`};
+    case 'award':{
+      const k=e.kind==='longest'?'最長交易路':'最大騎士力';
+      return{ic:'🏆',h:`${W(e.p)}が「${k}」を獲得（+2点）`,sub:e.from!=null&&e.from!==e.p?`${WO(e.from)}から移りました`:'',cls:e.p===s0?'good':e.from===s0?'bad':''};
+    }
+    case 'awardLost':return{ic:'🏆',h:`${W(e.p)}の「最長交易路」がなくなった`,cls:e.p===s0?'bad':''};
+  }
+  return null;
+}
+function evListHTML(list,s0,max,markNew){
+  const items=list.map(e=>({e,v:evView(e,s0)})).filter(x=>x.v);
+  const shown=items.slice(-max),hidden=items.length-shown.length;
+  let h=hidden?`<li class="more">…ほか${hidden}件（右下の記録で確認できます）</li>`:'';
+  h+=shown.map(({e,v})=>`<li class="${v.cls||''} ${markNew&&e.seq>seenEv?'new':''}"><span class="ic" aria-hidden="true">${v.ic}</span><span class="tx">${v.h}${v.sub?`<small>${v.sub}</small>`:''}</span></li>`).join('');
+  return h;
+}
+function renderTurnbar(){
+  const s0=NET.mySeat,cur=G.players[G.cur];
+  let h=`<div class="tb-head"><span class="tb-who"><span class="pdot" style="background:${cur.color}"></span>${G.phase==='setup'?'初期配置：':''}${G.cur===s0?'あなた':esc(cur.name)}の番</span><span class="tb-prompt">${esc(promptText()||'')}</span></div>`;
+  const o=G.offer;let oh='';
+  if(o){
+    const wait=o.waiting.map(i=>esc(G.players[i].name)).join('、'),dec=o.declined.map(i=>esc(G.players[i].name)).join('、');
+    const status=`返事待ち：${wait||'—'}${dec?`／断った人：${dec}`:''}`;
+    if(o.from===s0)oh+=`<div class="tb-offer"><span class="ot">交換を提案中　<b>${costIcons(o.pg)} ⇄ ${costIcons(o.pw)}</b><small>あなたが出す：${resText(o.pg)}／ほしい：${resText(o.pw)}<br>${status}（全員断るとCPUが判断します）</small></span><button data-act="cancelOffer">取り下げる</button></div>`;
+    else if(o.waiting.includes(s0))oh+=`<div class="tb-offer"><span class="ot">${nm(o.from)}から交換の提案　<b>${costIcons(o.pg)} ⇄ ${costIcons(o.pw)}</b><small>あなたがもらう：${resText(o.pg)}／渡す：${resText(o.pw)}</small></span><button data-act="reopenOffer">返事をする</button></div>`;
+    else oh+=`<div class="tb-offer"><span class="ot">${nm(o.from)}が交換を提案中　<b>${costIcons(o.pg)} ⇄ ${costIcons(o.pw)}</b><small>${status}</small></span></div>`;
+  }
+  $('#offerlay').innerHTML=oh;
+  const nowList=evListHTML(G.events||[],s0,999,true);
+  const pv=G.prevEvents,prevList=pv&&pv.list.length?evListHTML(pv.list,s0,999,false):'';
+  const prevTitle=pv&&pv.p!=null?`前のターン：${pv.p===s0?'あなた':esc(G.players[pv.p].name)}`:'初期配置';
+  h+=`<div class="tb-cols"><section class="tb-col"><h3>このターンの出来事</h3><ul class="tb-list" id="evNow">${nowList||'<li class="none">まだ何も起きていません</li>'}</ul></section>`;
+  h+=`<section class="tb-col prev"><h3>${prevList?prevTitle:'前のターン'}</h3><ul class="tb-list" id="evPrev">${prevList||'<li class="none">—</li>'}</ul></section></div>`;
+  /* 描き直してもスクロール位置を保つ。新しい出来事が来たときだけ一番下（最新）へ送る */
+  const keep=id=>{const el=document.getElementById(id);return el?{top:el.scrollTop,atBottom:el.scrollTop+el.clientHeight>=el.scrollHeight-4}:null;};
+  const kn=keep('evNow'),kp=keep('evPrev');
+  const hasNew=(G.evN||0)>seenEv,prevKey=(pv&&pv.list.length)+':'+G.turnNo,prevChanged=prevKey!==lastPrevKey;
+  lastPrevKey=prevKey;seenEv=G.evN||0;
+  $('#turnbar').innerHTML=h;
+  const en=$('#evNow'),ep=$('#evPrev');
+  en.scrollTop=(!kn||hasNew||kn.atBottom)?en.scrollHeight:kn.top;
+  ep.scrollTop=(!kp||prevChanged||kp.atBottom)?ep.scrollHeight:kp.top;
+}
+$('#offerlay').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||!G)return;
+  if(b.dataset.act==='cancelOffer')send({t:'cancelOffer'});
+  if(b.dataset.act==='reopenOffer'&&G.offer)openOffer(G.offer);
+});
+$('#turnbar').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||!G)return;
+  if(b.dataset.act==='cancelOffer')send({t:'cancelOffer'});
+  if(b.dataset.act==='reopenOffer'&&G.offer)openOffer(G.offer);
+});
 function renderSide(){
   const s0=NET.mySeat;
   $('#turn').textContent=G.phase==='setup'?'初期配置':G.phase==='over'?'ゲーム終了':`${G.players[G.cur].name}の番`;
@@ -1024,9 +1276,6 @@ function renderSide(){
   const r=G.rolled;
   const btn=(act,label,cost,en,cls='')=>`<button data-act="${act}" class="${cls}" ${en?'':'disabled'}><span>${label}</span>${cost?`<span class="cost">${costIcons(cost)}</span>`:''}</button>`;
   let h='';
-  const o=G.offer;
-  if(o&&o.waiting.includes(s0))h+=`<div class="offerbar"><span>${nm(o.from)}からの提案：<br>${costIcons(o.pg)} をくれる代わりに ${costIcons(o.pw)} がほしい</span><span class="btns"><button class="primary" data-act="accept" ${RES.every(k=>p.res[k]>=o.pw[k])?'':'disabled'}>承諾</button><button data-act="decline">断る</button></span></div>`;
-  else if(o&&o.from===s0)h+=`<div class="offerbar"><span>提案中：${costIcons(o.pg)} ⇄ ${costIcons(o.pw)}<br><small class="muted">返事を待っています</small></span><button data-act="cancelOffer">取り下げる</button></div>`;
   if(hlMode()&&['road','settlement','city'].includes(L.mode))h+=`<div class="modebar"><span>盤面の光っている場所を選んでください</span><button data-act="cancel">やめる</button></div>`;
   h+=`<div class="acts">`;
   h+=btn('roll','サイコロを振る',null,t&&!r,'primary wide');
