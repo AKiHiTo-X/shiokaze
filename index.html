@@ -4,7 +4,7 @@
 <link rel="apple-touch-icon" href="icon_catan.png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>潮風の開拓島 オンライン</title>
+<title>潮風の開拓島</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
@@ -139,6 +139,10 @@ aside{display:flex;flex-direction:column;gap:12px;min-width:0}
 .legal{cursor:pointer;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.55}}
 .hit{cursor:pointer}
+.lastmark{animation:lastpulse 1.4s ease-out 2}
+@keyframes lastpulse{0%{stroke-width:7;opacity:1}100%{stroke-width:3;opacity:.75}}
+@media (prefers-reduced-motion:reduce){.lastmark{animation:none}}
+#speedSel{font:inherit;padding:6px 8px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
 </style>
 </head>
 <body>
@@ -147,6 +151,7 @@ aside{display:flex;flex-direction:column;gap:12px;min-width:0}
   <span class="turn" id="turn"></span>
   <span class="room" id="roomInfo"></span>
   <span class="spacer"></span>
+  <label class="room" id="speedWrap">CPUの速さ <select id="speedSel"></select></label>
   <button id="rulesBtn">遊び方</button>
   <button id="newBtn">新しいゲーム</button>
 </header>
@@ -203,7 +208,9 @@ aside{display:flex;flex-direction:column;gap:12px;min-width:0}
 const $=s=>document.querySelector(s);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let GEN=0;
-function nap(ms){const g=GEN;return sleep(ms).then(()=>{if(g!==GEN)throw new Error('stale');});}
+const SPEEDS={slow:{label:'ゆっくり',k:1.7},normal:{label:'ふつう',k:1},fast:{label:'はやい',k:.45}};
+let SPEED='normal';try{if(SPEEDS[localStorage.getItem('shiokaze-speed')])SPEED=localStorage.getItem('shiokaze-speed');}catch(e){}
+function nap(ms){const g=GEN;return sleep(ms*SPEEDS[SPEED].k).then(()=>{if(g!==GEN)throw new Error('stale');});}
 function stale(e){if(e&&e.message!=='stale')console.error(e);}
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -236,28 +243,42 @@ const NET={role:'solo',peer:null,conns:{},hostConn:null,mySeat:0,code:null,lobby
 const genCode=()=>{const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s;};
 
 function send(m){
-  if(NET.role==='guest'){if(NET.hostConn&&NET.hostConn.open)NET.hostConn.send(m);else toast('ホストに接続されていません');}
+  if(NET.role==='guest'){if(NET.hostConn&&NET.hostConn.open)safeSend(NET.hostConn,m);else toast('ホストに接続されていません');}
   else handle(NET.mySeat,m);
 }
 function notify(seat,text){
   if(seat===NET.mySeat&&NET.role!=='guest')return toast(text);
-  const c=NET.conns[seat];if(c&&c.open)c.send({t:'toast',text});
+  const c=NET.conns[seat];if(c&&c.open)safeSend(c,{t:'toast',text});
 }
+/* 送信はすべて JSON 文字列にして送る（PeerJS の binary 方式は大きなデータを自動で分割してくれる） */
+function safeSend(c,m){try{c.send(JSON.stringify(m));}catch(e){console.warn('送信に失敗しました',e);}}
+function parseMsg(d){if(typeof d==='string'){try{return JSON.parse(d);}catch(e){return null;}}return d;}
 let syncQueued=false;
 function sync(){
   if(NET.role!=='host'||syncQueued)return;
   syncQueued=true;
   queueMicrotask(()=>{
     syncQueued=false;if(!G)return;
-    for(const[s,c]of Object.entries(NET.conns))if(c.open)c.send({t:'state',g:stateFor(+s)});
+    for(const[s,c]of Object.entries(NET.conns)){
+      if(!c.open)continue;
+      if(c._board!==G.boardId){safeSend(c,{t:'board',b:boardFor()});c._board=G.boardId;}
+      safeSend(c,{t:'state',g:stateFor(+s)});
+    }
   });
 }
-/* 相手の手札と発展カードの中身は伏せて送る */
+/* 地形など変わらない部分は、盤面ごとに1回だけ送る */
+function boardFor(){
+  return{id:G.boardId,hexes:G.hexes,ports:G.ports,
+    verts:G.verts.map(v=>({id:v.id,x:v.x,y:v.y,hexes:v.hexes,edges:v.edges,adj:v.adj,port:v.port})),
+    edges:G.edges.map(e=>({id:e.id,a:e.a,b:e.b,hexes:e.hexes}))};
+}
+/* 毎回送るのは変化する部分だけ。相手の手札と発展カードの中身は伏せる */
 function stateFor(seat){
   const over=G.phase==='over';
-  const o={...G,deck:null,deckN:G.deck.length};
+  const o={...G,deck:null,deckN:G.deck.length,hexes:null,verts:null,edges:null,ports:null,
+    bld:G.verts.map(v=>v.building),rds:G.edges.map(e=>e.road)};
   o.players=G.players.map(p=>(over||p.idx===seat)?p:{...p,res:{wood:total(p),brick:0,sheep:0,wheat:0,ore:0},dev:p.dev.map(d=>({type:'?',turn:d.turn})),masked:true});
-  o.log=G.log.map(l=>({t:(l.priv&&l.priv.seats.includes(seat))?l.priv.text:l.t,sep:l.sep}));
+  o.log=G.log.slice(0,40).map(l=>({t:(l.priv&&l.priv.seats.includes(seat))?l.priv.text:l.t,sep:l.sep}));
   return o;
 }
 
@@ -273,9 +294,9 @@ function hostRoom(name){
     if(!NET.started)lobbyErr('通信エラー: '+err.type);else toast('通信エラー: '+err.type);
   });
   peer.on('connection',conn=>{
-    conn.on('data',d=>onHostData(conn,d));
+    conn.on('data',d=>onHostData(conn,parseMsg(d)));
     conn.on('close',()=>onGuestLeft(conn));
-    conn.on('error',()=>onGuestLeft(conn));
+    conn.on('error',e=>console.warn('接続エラー（切断ではありません）',e));
   });
 }
 function onHostData(conn,d){
@@ -284,15 +305,15 @@ function onHostData(conn,d){
     const name=cleanName(d.name);
     if(NET.started){
       const p=G.players.find(p=>p.human&&!p.online&&p.name===name);
-      if(!p){conn.send({t:'reject',reason:'ゲームはすでに始まっています'});return;}
+      if(!p){safeSend(conn,{t:'reject',reason:'ゲームはすでに始まっています'});return;}
       conn.seat=p.idx;NET.conns[p.idx]=conn;p.online=true;p.ai=false;
       log(`${nm(p.idx)}が再接続しました`);
-      conn.send({t:'start',seat:p.idx,code:NET.code});render();return;
+      conn._board=null;safeSend(conn,{t:'start',seat:p.idx,code:NET.code});render();return;
     }
-    if(NET.lobby.length>=4){conn.send({t:'reject',reason:'満員です'});return;}
+    if(NET.lobby.length>=4){safeSend(conn,{t:'reject',reason:'満員です'});return;}
     const seat=[1,2,3].find(s=>!NET.lobby.some(l=>l.seat===s));
     conn.seat=seat;NET.conns[seat]=conn;NET.lobby.push({seat,name});
-    conn.send({t:'welcome',seat,code:NET.code});
+    safeSend(conn,{t:'welcome',seat,code:NET.code});
     broadcastLobby();showRoom();return;
   }
   if(conn.seat==null||!NET.started)return;
@@ -309,7 +330,7 @@ function onGuestLeft(conn){
   log(`${nm(seat)}の接続が切れたため、CPUが代わりに操作します`);
   takeover(seat);render();
 }
-function broadcastLobby(){for(const c of Object.values(NET.conns))if(c.open)c.send({t:'lobby',lobby:NET.lobby});}
+function broadcastLobby(){for(const c of Object.values(NET.conns))if(c.open)safeSend(c,{t:'lobby',lobby:NET.lobby});}
 function startOnline(){
   const humans=NET.lobby.slice().sort((a,b)=>a.seat-b.seat);
   const conns={};
@@ -317,7 +338,7 @@ function startOnline(){
   NET.conns=conns;NET.lobby=humans;NET.started=true;
   const spec=[0,1,2,3].map(i=>humans[i]?{name:humans[i].name,human:true}:{name:CPUN[i-1],human:false});
   newGame(spec);
-  for(const[s,c]of Object.entries(NET.conns))c.send({t:'start',seat:+s,code:NET.code});
+  for(const[s,c]of Object.entries(NET.conns))safeSend(c,{t:'start',seat:+s,code:NET.code});
   hideLobby();sync();
 }
 
@@ -327,9 +348,10 @@ function joinRoom(code,name){
   lobbyErr('接続しています…',true);
   const peer=new Peer();NET.peer=peer;
   peer.on('open',()=>{
-    const conn=peer.connect(PREFIX+code,{reliable:true,serialization:'json'});NET.hostConn=conn;
-    conn.on('open',()=>conn.send({t:'hello',name}));
-    conn.on('data',onGuestData);
+    const conn=peer.connect(PREFIX+code,{reliable:true,serialization:'binary'});NET.hostConn=conn;
+    conn.on('open',()=>safeSend(conn,{t:'hello',name}));
+    conn.on('data',d=>onGuestData(parseMsg(d)));
+    conn.on('error',e=>console.warn('接続エラー',e));
     conn.on('close',()=>{
       if(NET.started)modal(`<h3>接続が切れました</h3><p>ホストとの通信が途切れました。同じ名前で参加し直すと、元の席に戻れます。</p><div class="mfoot"><button class="primary" data-act="reload">参加画面に戻る</button></div>`,{reload:()=>location.reload()});
       else{lobbyErr('ホストとの接続が切れました');showMain();}
@@ -347,7 +369,13 @@ function onGuestData(d){
     case 'welcome':NET.mySeat=d.seat;lobbyErr('');showRoom();break;
     case 'lobby':NET.lobby=d.lobby;showRoom();break;
     case 'start':NET.mySeat=d.seat;NET.started=true;hideLobby();break;
-    case 'state':G=d.g;render();break;
+    case 'board':NET.board=d.b;break;
+    case 'state':{
+      const B=NET.board,g=d.g;if(!B||B.id!==g.boardId)break;
+      g.hexes=B.hexes;g.ports=B.ports;
+      g.verts=B.verts.map((v,i)=>({...v,building:g.bld[i]}));
+      g.edges=B.edges.map((e,i)=>({...e,road:g.rds[i]}));
+      G=g;render();break;}
     case 'toast':toast(d.text);break;
     case 'reject':lobbyErr(d.reason);NET.peer&&NET.peer.destroy();NET.role='solo';showMain();break;
   }
@@ -403,7 +431,8 @@ function newGame(spec){
   G={...b,robber:b.hexes.find(h=>h.type==='desert').id,
     players:spec.map((s,i)=>({name:s.name,color:COLORS[i],human:s.human,online:s.human,ai:!s.human,idx:i,res:zero(),dev:[],knights:0,roads:15,settlements:5,cities:4})),
     deck,cur:0,phase:'setup',mode:null,waitSeat:null,rolled:false,devPlayed:false,busy:false,turnNo:0,longest:null,army:null,
-    log:[],dice:[0,0],rollId:0,lastV:null,pendingDiscard:null,pendingVictim:null,offer:null};
+    log:[],dice:[0,0],rollId:0,lastV:null,pendingDiscard:null,pendingVictim:null,offer:null,
+    boardId:Date.now().toString(36)+Math.random().toString(36).slice(2,6),last:null};
   log('島に到着しました。開拓地と街道を2組ずつ配置します。');
   render();
   runSetup().catch(stale);
@@ -440,6 +469,8 @@ function placeSettlement(pi,v,second){
   if(second){const got=[];G.verts[v].hexes.forEach(h=>{const t=G.hexes[h].type;if(t!=='desert'){p.res[t]++;got.push(RI[t]);}});if(got.length)log(`${nm(pi)}は初期資源 ${got.join('')} を受け取った`);}
   updateLongest();
 }
+/* 直前に置かれた場所を盤面で光らせる（CPUの動きを追いやすくする） */
+function mark(kind,id){G.last={kind,id,at:Date.now()};}
 function placeRoad(pi,e){G.edges[e].road=pi;G.players[pi].roads--;updateLongest();}
 function placeCity(pi,v){G.verts[v].building.type='c';const p=G.players[pi];p.cities--;p.settlements++;log(`${nm(pi)}が都市へ発展`);}
 
@@ -479,12 +510,12 @@ async function runSetup(){
   for(let k=0;k<8;k++){
     const pi=order[k],second=k>=4;G.cur=pi;
     if(G.players[pi].ai){
-      render();await nap(550);
-      const v=aiPickSettlement(pi,true);placeSettlement(pi,v,second);render();await nap(350);
-      placeRoad(pi,aiSetupRoad(pi,v));render();
+      render();await nap(1000);
+      const v=aiPickSettlement(pi,true);placeSettlement(pi,v,second);mark('v',v);render();await nap(800);
+      const e=aiSetupRoad(pi,v);placeRoad(pi,e);mark('e',e);render();
     }else{
-      const v=await waitPick('setupSettlement',pi);placeSettlement(pi,v,second);G.lastV=v;
-      const e=await waitPick('setupRoad',pi);placeRoad(pi,e);G.lastV=null;render();
+      const v=await waitPick('setupSettlement',pi);placeSettlement(pi,v,second);mark('v',v);G.lastV=v;
+      const e=await waitPick('setupRoad',pi);placeRoad(pi,e);mark('e',e);G.lastV=null;render();
     }
   }
   G.phase='main';G.cur=0;
@@ -504,7 +535,7 @@ function ensureDriver(){
   const h=H,gen=GEN;h.driving=true;
   aiTurn(G.cur).then(async()=>{
     h.driving=false;if(gen!==GEN||G.phase!=='main')return;
-    await nap(450);endTurn();
+    await nap(900);endTurn();
   }).catch(e=>{h.driving=false;stale(e);});
 }
 /* 人間の入力待ちの最中に切断されたら、CPUが代わりに答える */
@@ -557,7 +588,7 @@ function resolveDiscard(sel){const r=H.discard,d=G.pendingDiscard;H.discard=null
 function resolveVictim(i){const r=H.victim;H.victim=null;G.pendingVictim=null;r(i);}
 async function robberFlow(pi){
   let h;
-  if(G.players[pi].ai){h=aiRobberHex(pi);await nap(450);}
+  if(G.players[pi].ai){await nap(900);h=aiRobberHex(pi);}
   else h=await waitPick('robber',pi);
   G.robber=h;const Hx=G.hexes[h];
   log(`${nm(pi)}が盗賊を${TER[Hx.type].n}${Hx.num?'（'+Hx.num+'）':''}へ移動`);
@@ -591,9 +622,9 @@ async function playRoadBuilding(pi){
   for(let k=0;k<2;k++){
     if(p.roads<=0||!roadSpots(pi).length)break;
     let e;
-    if(p.ai){e=aiBestRoad(pi);if(e==null)e=roadSpots(pi)[0];await nap(350);}
+    if(p.ai){e=aiBestRoad(pi);if(e==null)e=roadSpots(pi)[0];await nap(800);}
     else e=await waitPick('freeRoad',pi);
-    placeRoad(pi,e);render();
+    placeRoad(pi,e);mark('e',e);render();
   }
   checkWin();
 }
@@ -658,9 +689,9 @@ async function handle(seat,m){
         if(G.rolled)return;G.busy=true;render();await doRoll();G.busy=false;render();ensureDriver();break;
       case 'build':{
         if(!G.rolled)return;const id=m.id;
-        if(m.what==='road'&&p.roads>0&&afford(p,COST.road)&&legalRoad(seat,id)){pay(p,COST.road);placeRoad(seat,id);log(`${nm(seat)}が街道を建設`);}
-        else if(m.what==='settlement'&&p.settlements>0&&afford(p,COST.settlement)&&legalSettlement(seat,id,false)){pay(p,COST.settlement);placeSettlement(seat,id);}
-        else if(m.what==='city'&&p.cities>0&&afford(p,COST.city)&&legalCity(seat,id)){pay(p,COST.city);placeCity(seat,id);}
+        if(m.what==='road'&&p.roads>0&&afford(p,COST.road)&&legalRoad(seat,id)){pay(p,COST.road);placeRoad(seat,id);mark('e',id);log(`${nm(seat)}が街道を建設`);}
+        else if(m.what==='settlement'&&p.settlements>0&&afford(p,COST.settlement)&&legalSettlement(seat,id,false)){pay(p,COST.settlement);placeSettlement(seat,id);mark('v',id);}
+        else if(m.what==='city'&&p.cities>0&&afford(p,COST.city)&&legalCity(seat,id)){pay(p,COST.city);placeCity(seat,id);mark('v',id);}
         else return;
         if(!checkWin())render();break;}
       case 'dev':if(G.rolled){buyDev(seat);render();}break;
@@ -728,22 +759,22 @@ async function aiDevs(pi){
   if(canPlay(p,'road')&&p.roads>0&&aiBestRoad(pi)!=null)await playRoadBuilding(pi);
 }
 async function aiTurn(pi){
-  const p=G.players[pi];render();await nap(600);
+  const p=G.players[pi];render();await nap(1100);
   if(!G.rolled){
-    if(canPlay(p,'knight')&&robberOnMine(pi)){await playKnight(pi);if(G.phase==='over')return;await nap(400);}
-    await doRoll();await nap(750);
+    if(canPlay(p,'knight')&&robberOnMine(pi)){await playKnight(pi);if(G.phase==='over')return;await nap(900);}
+    await doRoll();await nap(1500);
   }
   await aiDevs(pi);if(checkWin())return;render();
   for(let it=0;it<15;it++){
     let acted=false;
-    if(p.settlements>0&&afford(p,COST.settlement)){const v=aiPickSettlement(pi,false);if(v!=null){pay(p,COST.settlement);placeSettlement(pi,v);acted=true;}}
-    if(!acted&&p.cities>0&&afford(p,COST.city)){let best=null,bs=-1;G.verts.forEach(v=>{if(legalCity(pi,v.id)){const s=vScore(v.id);if(s>bs){bs=s;best=v.id;}}});if(best!=null){pay(p,COST.city);placeCity(pi,best);acted=true;}}
-    if(!acted&&p.roads>0&&afford(p,COST.road)&&(settleSpots(pi).length===0||(total(p)>=7&&Math.random()<.5))){const e=aiBestRoad(pi);if(e!=null){pay(p,COST.road);placeRoad(pi,e);log(`${nm(pi)}が街道を建設`);acted=true;}}
+    if(p.settlements>0&&afford(p,COST.settlement)){const v=aiPickSettlement(pi,false);if(v!=null){pay(p,COST.settlement);placeSettlement(pi,v);mark('v',v);acted=true;}}
+    if(!acted&&p.cities>0&&afford(p,COST.city)){let best=null,bs=-1;G.verts.forEach(v=>{if(legalCity(pi,v.id)){const s=vScore(v.id);if(s>bs){bs=s;best=v.id;}}});if(best!=null){pay(p,COST.city);placeCity(pi,best);mark('v',best);acted=true;}}
+    if(!acted&&p.roads>0&&afford(p,COST.road)&&(settleSpots(pi).length===0||(total(p)>=7&&Math.random()<.5))){const e=aiBestRoad(pi);if(e!=null){pay(p,COST.road);placeRoad(pi,e);mark('e',e);log(`${nm(pi)}が街道を建設`);acted=true;}}
     if(!acted&&afford(p,COST.dev)&&G.deck.length){const t=aiTarget(pi);if(t===COST.dev||total(p)>=8||Math.random()<.25){buyDev(pi);acted=true;}}
     if(!acted)acted=aiBankTrade(pi);
     if(checkWin())return;
     if(!acted)break;
-    render();await nap(450);
+    render();await nap(1100);
   }
 }
 function aiAccepts(pi,from,recv,give){
@@ -890,6 +921,8 @@ function showRules(){
   </div><div class="mfoot"><button class="primary" data-act="close">閉じる</button></div>`,{close:closeModal});
 }
 $('#rulesBtn').onclick=showRules;
+$('#speedSel').innerHTML=Object.entries(SPEEDS).map(([k,v])=>`<option value="${k}" ${k===SPEED?'selected':''}>${v.label}</option>`).join('');
+$('#speedSel').onchange=e=>{SPEED=e.target.value;try{localStorage.setItem('shiokaze-speed',SPEED);}catch(err){}};
 $('#newBtn').onclick=()=>{if(!G||NET.role==='guest')return;if(G.phase==='over'||confirm('今のゲームを終えて、新しい島で始めますか？'))restart();};
 
 /* ---------- 描画 ---------- */
@@ -958,6 +991,12 @@ function renderBoard(){
   if(m==='city'){
     G.verts.forEach(v=>{if(legalCity(s0,v.id))s+=`<g data-v="${v.id}" class="hit"><circle class="legal" cx="${v.x}" cy="${v.y}" r="16" fill="rgba(255,247,218,.35)" stroke="#FFF7DA" stroke-width="2.5"/></g>`;});
   }
+  if(G.last&&G.phase!=='over'){
+    let cx,cy;
+    if(G.last.kind==='v'){cx=G.verts[G.last.id].x;cy=G.verts[G.last.id].y;}
+    else{const e=G.edges[G.last.id];cx=(G.verts[e.a].x+G.verts[e.b].x)/2;cy=(G.verts[e.a].y+G.verts[e.b].y)/2;}
+    s+=`<circle class="lastmark" cx="${cx}" cy="${cy}" r="21" fill="none" stroke="#FFF7DA" stroke-width="3" pointer-events="none"/>`;
+  }
   const rh=G.hexes[G.robber];
   s+=`<g transform="translate(${rh.x+25},${rh.y+2})" pointer-events="none"><ellipse cy="13" rx="10" ry="3.5" fill="rgba(0,0,0,.35)"/><path d="M-7,12 C-7,2 -4,0 -4,-3 A5.5,5.5 0 1 1 4,-3 C4,0 7,2 7,12 Z" fill="#23262B" stroke="#F4ECD6" stroke-width="1.2"/></g>`;
   svg.innerHTML=s;
@@ -971,6 +1010,7 @@ function renderSide(){
   $('#turn').textContent=G.phase==='setup'?'初期配置':G.phase==='over'?'ゲーム終了':`${G.players[G.cur].name}の番`;
   $('#roomInfo').textContent=NET.role==='solo'?'':`部屋 ${NET.code}`;
   $('#newBtn').hidden=NET.role==='guest';
+  $('#speedWrap').hidden=NET.role==='guest';
   $('#players').innerHTML=G.players.map(p=>{
     const tag=p.idx===s0?'あなた':!p.human?'CPU':!p.online?'切断中・CPU代打ち':'';
     return `<div class="prow ${G.cur===p.idx&&G.phase!=='over'?'cur':''}"><span class="pdot" style="background:${p.color}"></span><span class="pname">${esc(p.name)}${tag?`<small>${tag}</small>`:''}</span><span class="pvp">${vp(p,p.idx===s0||G.phase==='over')}<small>点</small></span>
