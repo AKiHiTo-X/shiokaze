@@ -97,7 +97,10 @@ input{font:inherit;padding:8px 10px;border-radius:9px;border:1px solid var(--lin
 .bigdice.seven .bd-sum{color:#FF9C8C}
 @media(max-width:600px){.bigdice .die{width:70px;height:70px;padding:10px}.bigdice .die i{width:12px;height:12px}.bd-sum{font-size:42px}}
 svg#board{width:100%;height:auto;display:block;max-height:calc(100vh - 100px);touch-action:manipulation}
-.dice{position:absolute;right:14px;bottom:14px;display:flex;gap:8px;align-items:center;transform-origin:center}
+.dicebar{display:flex;align-items:center;justify-content:flex-end;gap:12px;min-height:60px;padding:6px 16px 12px;pointer-events:none}
+.dicelabel{color:#B8C4D4;font-size:12.5px}
+.dicebar:has(.dice:empty) .dicelabel{visibility:hidden}
+.dice{display:flex;gap:8px;align-items:center;transform-origin:center;pointer-events:none}
 .dice .sum{color:#F3EFE4;font-weight:700;font-size:20px;min-width:28px;text-align:right}
 .die{width:40px;height:40px;background:#FBF7EC;border-radius:8px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:6px;box-shadow:0 3px 0 rgba(0,0,0,.35)}
 .die i{width:7px;height:7px;border-radius:50%;background:#1C1C1C;place-self:center;visibility:hidden}
@@ -211,10 +214,10 @@ aside{display:flex;flex-direction:column;gap:12px;min-width:0}
     <div class="turnbar" id="turnbar"></div>
     <div class="stage">
       <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
-      <div class="dice" id="dice"></div>
       <div class="bigdice hidden" id="bigdice" aria-live="polite"></div>
       <div class="offerlay" id="offerlay"></div>
     </div>
+    <div class="dicebar"><span class="dicelabel">直前のサイコロ</span><div class="dice" id="dice"></div></div>
   </section>
   <aside>
     <div class="panel"><h2>プレイヤー</h2><div id="players"></div></div>
