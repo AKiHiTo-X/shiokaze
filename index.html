@@ -116,6 +116,7 @@ aside{display:flex;flex-direction:column;gap:12px;min-width:0}
 .pdot{display:inline-block;width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(0,0,0,.55);vertical-align:-1px;margin-right:3px}
 .prow .pdot{margin:0}
 .pname{font-weight:700}
+.pname .ord{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-right:6px;vertical-align:1px}
 .pname small{font-weight:400;color:var(--muted);margin-left:6px}
 .pvp{font-family:'Kaisei Decol',serif;font-size:22px;line-height:1}
 .pvp small{font-family:inherit;font-size:12px;color:var(--muted);margin-left:2px}
@@ -230,7 +231,7 @@ aside{display:flex;flex-direction:column;gap:12px;min-width:0}
 <div id="lobby" class="lobby">
   <div class="lbox">
     <h1>潮風の開拓島</h1>
-    <p class="sub">最大4人。足りない席はCPUが入ります。</p>
+    <p class="sub">最大4人。足りない席はCPUが入ります。手番の順番は毎回ランダムです。</p>
     <div id="lobbyMain">
       <label class="field">あなたの名前<input id="nameIn" maxlength="10" autocomplete="nickname"></label>
       <div class="lbtns">
@@ -498,10 +499,12 @@ function newGame(spec){
   const deck=shuffle([...Array(14).fill('knight'),...Array(5).fill('vp'),'road','road','yop','yop','mono','mono']);
   G={...b,robber:b.hexes.find(h=>h.type==='desert').id,
     players:spec.map((s,i)=>({name:s.name,color:COLORS[i],human:s.human,online:s.human,ai:!s.human,idx:i,res:zero(),dev:[],knights:0,roads:15,settlements:5,cities:4})),
-    deck,cur:0,phase:'setup',mode:null,waitSeat:null,rolled:false,devPlayed:false,busy:false,turnNo:0,longest:null,army:null,
+    deck,order:shuffle([0,1,2,3]),cur:0,phase:'setup',mode:null,waitSeat:null,rolled:false,devPlayed:false,busy:false,turnNo:0,longest:null,army:null,
     log:[],events:[],prevEvents:null,evN:0,dice:[0,0],rollId:0,lastV:null,pendingDiscard:null,pendingVictim:null,offer:null,
     boardId:Date.now().toString(36)+Math.random().toString(36).slice(2,6),last:null};
+  G.cur=G.order[0];
   log('島に到着しました。開拓地と街道を2組ずつ配置します。');
+  log(`手番の順番：${G.order.map((i,k)=>`${k+1}. ${nm(i)}`).join('　')}`);
   render();
   runSetup().catch(stale);
 }
@@ -576,7 +579,7 @@ function waitPick(mode,seat){G.mode=mode;G.waitSeat=seat;render();return new Pro
 function resolvePick(id){const r=H.pick;H.pick=null;G.mode=null;G.waitSeat=null;r(id);}
 
 async function runSetup(){
-  const order=[0,1,2,3,3,2,1,0];
+  const order=[...G.order,...[...G.order].reverse()];
   for(let k=0;k<8;k++){
     const pi=order[k],second=k>=4;G.cur=pi;
     if(G.players[pi].ai){
@@ -588,17 +591,17 @@ async function runSetup(){
       const e=await waitPick('setupRoad',pi);placeRoad(pi,e);mark('e',e);G.lastV=null;render();
     }
   }
-  G.phase='main';G.cur=0;
+  G.phase='main';G.cur=G.order[0];
   startTurn();
 }
 function startTurn(){
-  G.prevEvents={p:G.phase==='main'&&G.turnNo>0?(G.cur+3)%4:null,list:G.events};G.events=[];
+  G.prevEvents={p:G.phase==='main'&&G.turnNo>0?G.order[(G.order.indexOf(G.cur)+3)%4]:null,list:G.events};G.events=[];
   G.turnNo++;G.rolled=false;G.devPlayed=false;G.aiOffered=false;finishOffer(false);
   log(`${nm(G.cur)}のターン`,{sep:true});
   if(checkWin())return;
   render();ensureDriver();
 }
-function endTurn(){if(G.phase!=='main')return;finishOffer(false);G.cur=(G.cur+1)%4;startTurn();}
+function endTurn(){if(G.phase!=='main')return;finishOffer(false);G.cur=G.order[(G.order.indexOf(G.cur)+1)%4];startTurn();}
 
 /* 現在の手番がCPUなら、CPUに操作させる（切断した人間の代打ちも含む） */
 function ensureDriver(){
@@ -1266,9 +1269,9 @@ function renderSide(){
   $('#roomInfo').textContent=NET.role==='solo'?'':`部屋 ${NET.code}`;
   $('#newBtn').hidden=NET.role==='guest';
   $('#speedWrap').hidden=NET.role==='guest';
-  $('#players').innerHTML=G.players.map(p=>{
+  $('#players').innerHTML=(G.order||[0,1,2,3]).map(i=>G.players[i]).map((p,k)=>{
     const tag=p.idx===s0?'あなた':!p.human?'CPU':!p.online?'切断中・CPU代打ち':'';
-    return `<div class="prow ${G.cur===p.idx&&G.phase!=='over'?'cur':''}"><span class="pdot" style="background:${p.color}"></span><span class="pname">${esc(p.name)}${tag?`<small>${tag}</small>`:''}</span><span class="pvp">${vp(p,p.idx===s0||G.phase==='over')}<small>点</small></span>
+    return `<div class="prow ${G.cur===p.idx&&G.phase!=='over'?'cur':''}"><span class="pdot" style="background:${p.color}"></span><span class="pname"><span class="ord">${k+1}番手</span>${esc(p.name)}${tag?`<small>${tag}</small>`:''}</span><span class="pvp">${vp(p,p.idx===s0||G.phase==='over')}<small>点</small></span>
     <div class="pmeta"><span>手札 ${total(p)}</span><span>発展 ${p.dev.length}</span><span>騎士 ${p.knights}</span><span>街道 ${longestFor(p.idx)}</span>${G.longest===p.idx?'<span class="badge">最長交易路</span>':''}${G.army===p.idx?'<span class="badge">最大騎士力</span>':''}</div></div>`;
   }).join('');
   const p=me();
